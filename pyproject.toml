@@ -7,6 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "jupyterlab>=4.5.6",
     "matplotlib>=3.10.8",
+    "nltk>=3.9.4",
     "pandas>=3.0.2",
     "seaborn>=0.13.2",
+    "spacy>=3.8.14",
 ]
