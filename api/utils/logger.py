@@ -4,6 +4,8 @@ from pathlib import Path
 
 import yaml
 
+from api.core.settings import get_settings
+
 DEFAULT_LOG_DIR = Path("api/logs")
 DEFAULT_LOG_FILE = DEFAULT_LOG_DIR / "api.log"
 
@@ -34,6 +36,8 @@ def set_up_logging(log_config_path: Path, log_file: Path | None = None) -> None:
     logging.config.dictConfig(config)
 
 
-def get_logger(name: str = "api") -> logging.Logger:
+def get_logger(name: str | None = None) -> logging.Logger:
     """Retrieve configured logger."""
+    settings = get_settings()
+    name = name or settings.log_name
     return logging.getLogger(name)

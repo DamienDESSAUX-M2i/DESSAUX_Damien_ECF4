@@ -19,13 +19,15 @@ from api.services.prediction import (
     get_prediction_by_id,
     get_predictions_by_user_id,
 )
+from api.utils.logger import get_logger
 from api.utils.ml_model import MLModel
+
+logger = get_logger()
 
 router = APIRouter(prefix="/predictions", tags=["Predictions"])
 
 
 def validate_title(title: str) -> None:
-    """Validation métier d’un titre"""
     if title.strip() == "":
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -40,7 +42,6 @@ def validate_title(title: str) -> None:
 
 
 def validate_batch_titles(titles: list[str]) -> None:
-    """Validation batch"""
     if len(titles) == 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -68,15 +69,9 @@ def predict(
     ml_model: MLModel = Depends(get_model),
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.USER)),
 ) -> APIResponse[PredictionResponse]:
-    """
-    Infère le modèle ML et enregistre la prédiction.
-    Accès: USER, ADMIN
-    """
-    if ml_model is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Modèle non chargé.",
-        )
+    logger.info(
+        f"Prediction request : user_id={current_user.id}",
+    )
 
     validate_title(input_data.title)
 
@@ -91,6 +86,10 @@ def predict(
             confidence=confidence[0],
         )
 
+        logger.info(
+            f"Prediction created : user_id={current_user.id}, prediction_id={prediction.id}, label={predicted_label[0]}"
+        )
+
         return APIResponse(
             status=True,
             data=prediction,
@@ -99,9 +98,12 @@ def predict(
         )
 
     except Exception as e:
+        logger.exception(
+            f"Prediction failed : user_id={current_user.id}",
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Échec de la prédiction: {e}",
+            detail=f"Prediction failed : {e}",
         )
 
 
@@ -116,15 +118,9 @@ def predict_batch(
     ml_model: MLModel = Depends(get_model),
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.USER)),
 ) -> APIResponse[PredictionListResponse]:
-    """
-    Inférence batch du modèle ML.
-    Retourne les prédictions pour une liste de titres.
-    """
-    if ml_model is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Modèle non chargé.",
-        )
+    logger.info(
+        f"Batch prediction request: user_id={current_user.id}, batch_size={len(input_data.titles)}"
+    )
 
     validate_batch_titles(input_data.titles)
 
@@ -144,6 +140,10 @@ def predict_batch(
 
             predictions.append(prediction)
 
+        logger.info(
+            f"Batch prediction completed : user_id={current_user.id}, count={len(predictions)}"
+        )
+
         return APIResponse(
             status=True,
             data=PredictionListResponse(predictions=predictions),
@@ -152,9 +152,10 @@ def predict_batch(
         )
 
     except Exception as e:
+        logger.exception(f"Batch prediction failed : user_id={current_user.id}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Échec de la prédiction batch: {e}",
+            detail=f"Prediction failed : {e}",
         )
 
 
@@ -166,10 +167,15 @@ def get_my_predictions(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.USER)),
 ) -> APIResponse[PredictionListResponse]:
-    """
-    Récupère les prédictions de l'utilisateur courant
-    """
+    logger.info(
+        f"Fetch user predictions : user_id={current_user.id}",
+    )
+
     predictions = get_predictions_by_user_id(db, current_user.id)
+
+    logger.info(
+        f"User predictions retrieved : user_id={current_user.id}, count={len(predictions)}"
+    )
 
     return APIResponse(
         status=True,
@@ -188,18 +194,23 @@ def get_prediction(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.USER)),
 ) -> APIResponse[PredictionResponse]:
-    """
-    Récupère une prédiction spécifique.
-    """
+    logger.info(
+        f"Fetch prediction : user_id={current_user.id}, prediction_id={prediction_id}"
+    )
+
     prediction = get_prediction_by_id(db, prediction_id)
 
     if not prediction:
+        logger.warning(f"Prediction not found : prediction_id={prediction_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Prediction not found",
         )
 
     if prediction.user_id != current_user.id and current_user.role != UserRole.ADMIN:
+        logger.warning(
+            f"Unauthorized prediction access : user_id={current_user.id}, prediction_id={prediction_id}"
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to access this prediction",

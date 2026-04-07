@@ -23,7 +23,7 @@ handlers:
     encoding: utf-8
 
 loggers:
-  my_app:
+  api:
     handlers: [console, file]
     level: DEBUG
     propagate: false

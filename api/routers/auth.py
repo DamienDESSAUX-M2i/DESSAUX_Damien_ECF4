@@ -16,12 +16,14 @@ from api.schemas.user import (
 )
 from api.schemas.utils import APIResponse
 from api.services.user import create_user, get_user_by_name
+from api.utils.logger import get_logger
+
+logger = get_logger()
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 def generate_access_token(user: User) -> str:
-    """Génère un JWT à partir d'une instance de User"""
     return create_access_token(
         data={
             "sub": user.name,
@@ -38,12 +40,16 @@ def generate_access_token(user: User) -> str:
 def register(
     payload: UserRegister, db: Session = Depends(get_db)
 ) -> APIResponse[UserPublic]:
-    """Créer un nouvel utilisateur"""
+    logger.info(f"User registration attempt : username={payload.name}")
+
     existing_user = get_user_by_name(db, payload.name)
     if existing_user:
+        logger.warning(
+            "Registration failed: username already exists : username={payload.name}",
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ce nom d'utilisateur existe déjà.",
+            detail=f"The name {payload.name} already exists.",
         )
 
     created_user = create_user(
@@ -53,10 +59,14 @@ def register(
         role=UserRole.USER,
     )
 
+    logger.info(
+        f"User registered successfully : user_id={created_user.id}, username={created_user.name}",
+    )
+
     return APIResponse(
         status=True,
         data=created_user,
-        message="Utilisateur créé avec succès",
+        message="User created successfully",
         timestamp=datetime.now(timezone.utc),
     )
 
@@ -65,18 +75,27 @@ def register(
 def login(
     payload: UserLogin, db: Session = Depends(get_db)
 ) -> APIResponse[LoginResponse]:
-    """Authentifie l'utilisateur et retourne un JWT si valide"""
+    logger.info(f"Login attempt : username={payload.name}")
+
     settings = get_settings()
 
     user = get_user_by_name(db, payload.name)
 
     if not user or not verify_password(payload.password, user.password_hash):
+        logger.warning(
+            f"Login failed: invalid credentials : username={payload.name}",
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Identifiants invalides.",
+            detail="Invalid credentials.",
         )
 
     access_token = generate_access_token(user)
+
+    logger.info(
+        f"Login successful : user_id={user.id}, username={user.name}",
+    )
 
     response_data = LoginResponse(
         access_token=access_token,
@@ -88,7 +107,7 @@ def login(
     return APIResponse(
         status=True,
         data=response_data,
-        message="Connexion réussie",
+        message="Connexion success",
         timestamp=datetime.now(timezone.utc),
     )
 
@@ -97,10 +116,17 @@ def login(
 def refresh(
     current_user: User = Depends(get_current_user),
 ) -> APIResponse[LoginResponse]:
-    """Génère un nouveau token pour l'utilisateur authentifié"""
+    logger.info(
+        f"Token refresh requested : user_id={current_user.id}, username={current_user.name}",
+    )
+
     settings = get_settings()
 
     access_token = generate_access_token(current_user)
+
+    logger.info(
+        f"Token refreshed successfully : user_id={current_user.id}",
+    )
 
     response_data = LoginResponse(
         access_token=access_token,
@@ -112,6 +138,6 @@ def refresh(
     return APIResponse(
         status=True,
         data=response_data,
-        message="Token rafraîchi avec succès",
+        message="Token successfully refreshed",
         timestamp=datetime.now(timezone.utc),
     )

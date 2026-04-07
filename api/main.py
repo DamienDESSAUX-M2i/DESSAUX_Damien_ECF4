@@ -11,8 +11,8 @@ from api.routers import (
     private_prediction,
     private_user,
 )
+from api.utils.logger import get_logger, set_up_logging
 from api.utils.ml_model import MLModel
-from api.utils.set_up_log import get_logger, set_up_logging
 
 
 def load_model() -> MLModel:
@@ -30,7 +30,7 @@ def create_app() -> FastAPI:
 
     log_config_path = Path(settings.log_config_path).resolve()
     set_up_logging(log_config_path)
-    logger = get_logger(settings.log_name)
+    logger = get_logger()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -38,15 +38,15 @@ def create_app() -> FastAPI:
 
         logger.info("Application startup")
 
-        logger.info("Database initialization")
         engine = get_engine()
         Base.metadata.create_all(bind=engine)
+        logger.info("Database initialized")
 
         try:
             app.state.ml_model = load_model()
             logger.info("Model loaded")
-        except Exception:
-            logger.exception("Model loading error")
+        except Exception as e:
+            logger.exception(f"Error loading the model : {e}")
             app.state.ml_model = None
 
         yield

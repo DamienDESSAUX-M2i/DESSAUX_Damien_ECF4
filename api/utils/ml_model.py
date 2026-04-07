@@ -78,8 +78,6 @@ CONTRACTION_PATTERN = re.compile(
 
 
 class MLModel:
-    """Wrapper autour du modèle scikit-learn."""
-
     def __init__(self, vectorizer_path: Path, model_path: Path):
         self.model = None
         self.vectorizer = None
@@ -91,58 +89,49 @@ class MLModel:
         self._load_model(model_path)
 
     def _load_vectorizer(self, vectorizer_path: Path) -> None:
-        """Charge le vectorizer depuis un fichier joblib."""
         if not vectorizer_path.exists():
             raise FileNotFoundError(
-                f"Fichier vectorizer introuvable : {vectorizer_path}"
+                f"vectorizer file not found : path={vectorizer_path}"
             )
 
         self.vectorizer = joblib.load(vectorizer_path)
 
     def _load_model(self, model_path: Path) -> None:
-        """Charge le modèle depuis un fichier joblib."""
         if not model_path.exists():
-            raise FileNotFoundError(f"Fichier modèle introuvable : {model_path}")
+            raise FileNotFoundError(f"model file not fount : path={model_path}")
 
         self.model = tensorflow.keras.models.load_model(model_path)
 
     def predict(
         self, titles: list[str], threshold: float | None = None
     ) -> Tuple[str, float, Dict[str, float]]:
-        """
-        Retourne (classe_prédite, confiance, dict_probabilités).
-
-        Raises:
-            RuntimeError: si le vectorizer ou le modèle n'est pas chargé.
-        """
         if self.vectorizer is None:
-            raise RuntimeError("Le vectorizer n'est pas chargé.")
+            raise RuntimeError("Vectorizer not loaded")
         if self.model is None:
-            raise RuntimeError("Le modèle n'est pas chargé.")
-
-        titles_cleaned = [self._clean_title(title) for title in titles]
-
-        titles_vectorized = self.vectorizer.transform(titles_cleaned)
-
-        labels_probabilities = self.model.predict(titles_vectorized).flatten()
+            raise RuntimeError("Model not loaded")
 
         threshold = threshold or self.threshold
+        if (threshold is None) or (threshold <= 0) or (threshold >= 1):
+            raise RuntimeError(
+                f"threshold must be a float greater than 0 and lower than 1 : threshold={threshold}"
+            )
 
+        titles_cleaned = [self._clean_title(title) for title in titles]
+        titles_vectorized = self.vectorizer.transform(titles_cleaned)
+        labels_probabilities = self.model.predict(titles_vectorized).flatten()
         labels_predicted_int = (labels_probabilities > threshold).astype(int)
-
         prediction_class = [
             self.classes[label_predicted_int]
             for label_predicted_int in labels_predicted_int
         ]
-        confidence = labels_probabilities
+        confidence = [
+            (label_probability - threshold) / (1 - threshold)
+            if label_probability > threshold
+            else (threshold - label_probability) / threshold
+            for label_probability in labels_probabilities
+        ]
 
         return prediction_class, confidence
-
-    def get_accuracy(self) -> Optional[float]:
-        """Retourne l'accuracy issue du rapport d'entraînement."""
-        if self.report:
-            return self.report.get("accuracy")
-        return None
 
     def _expand_contractions(self, text: str) -> str:
         return CONTRACTION_PATTERN.sub(lambda x: CONTRACTIONS[x.group()], text)
