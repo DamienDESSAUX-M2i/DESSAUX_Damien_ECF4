@@ -117,13 +117,15 @@ DESSAUX_DAMIEN_ECF4/
 ├── figures/
 │   ├── 01_label_distrubution.png
 │   ├── 02_length_text_distribution_label_fake.png
-│   ├── 03_length_text_distribution_label_real.png
+│   ├── 02_length_text_distribution_label_real.png
+│   ├── 03_tokens_distribution_per_labels_without_stopwords.png
 │   ├── 04_tokens_distribution_per_labels.png
-│   ├── 05_history_model_dense.png
-│   ├── 06_history_model_bidirectional_lstm.png
-│   ├── 07_confusion_matrix_model_dense.png
-│   ├── 08_roc_curve_model_dense.png
-│   └── 09_confusion_matrix_model_dense_optimal_threshold.png
+│   ├── 05_unique_tokens_distribution_per_labels.png
+│   ├── 06_history_model_dense.png
+│   ├── 07_history_model_bidirectional_lstm.png
+│   ├── 08_confusion_matrix_model_dense.png
+│   ├── 09_roc_curve_model_dense.png
+│   └── 10_confusion_matrix_model_dense_optimal_threshold.png
 ```
 
 # 4. Prérequis
@@ -161,14 +163,15 @@ uv run -m spacy download en_core_web_sm
 Créez un fichier `.env` à la racine du projet contenant les varialbes d'environnement suivantes :
 
 ```yaml
-API_NAME = "fake_news_predictor"
+API_NAME = "fake_or_real_news_predictor"
 DEBUG = True
 API_PREFIX = "/api"
 
 DATABASE_PATH = "data/api.db"
 
-VECTORIZER_PATH = "models/tf_idf_vectorizer"
+VECTORIZER_PATH = "models/tf_idf_vectorizer.pkl"
 MODEL_PATH = "models/model_dense.keras"
+THRESHOLD = 0.5411010980606079  # Confère youden_j dans le notebook ecf_fake_news.ipynb
 
 SECRET_KEY = "my-super-secret-key"
 ALGORITHM = "HS256"
@@ -209,7 +212,9 @@ L'API étant implémentée avec la bibliothèque `FastAPI`, elle dispose d'une d
 * La liste de tous les utilisateurs et la suppression d'utilisateurs sont réservés au role **ADMIN**. Pour les besoins de l'exercice, un utilisateur **ADMIN** ayant pour username `admin` et pour mot de passe `admin` a été créé.
 * Pour réaliser une prédiction, utiliser les endpoints `/predictions` ou `/predictions/batch`. Le endpoint `/predictions/me` retourne toutes les prédcitions de l'utilisateur courant. Le endpoint `/predictions/{prediction_id}` retourne la prédiction ayant pour id `prediction_id` si l'utilisateur est à l'origine de cette prédiction ou si l'utilisateur a pour role **ADMIN**.
 
-**Remarque :** Par manque de temps, le logging de l'API n'est pas complet, seul la couche controller dispose d'un logging.
+**Remarque :**
+* Par manque de temps, le logging de l'API n'est pas complet, seul la couche controller dispose d'un logging.
+* On aurrait pu dockeriser l'API.
 
 ### DataBase
 
