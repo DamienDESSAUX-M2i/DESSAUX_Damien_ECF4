@@ -1,0 +1,29 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  standard:
+    format: "{asctime} | {levelname:<8} | {name} | {module}:{funcName} | {message}"
+    style: "{"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: standard
+
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: standard
+    filename: logs/api.log
+    maxBytes: 5242880
+    backupCount: 3
+    encoding: utf-8
+
+loggers:
+  my_app:
+    handlers: [console, file]
+    level: DEBUG
+    propagate: false

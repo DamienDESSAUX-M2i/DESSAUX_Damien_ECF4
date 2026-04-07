@@ -48,3 +48,26 @@ Puis téléchargez le modèle linguistique `en_core_web_sm` de `spaCy` en éxéc
 ```bash
 uv run -m spacy download en_core_web_sm 
 ```
+
+### Variables d'environnement
+
+Créez un fichier .env à la racine du projet contenant les varialbes d'environnement suivantes :
+
+```yaml
+API_NAME = "fake_news_predictor"
+DEBUG = True
+API_PREFIX = "/api"
+
+DATABASE_PATH = "data/api.db"
+
+VECTORIZER_PATH = "models/tf_idf_vectorizer"
+MODEL_PATH = "models/model_dense.keras"
+
+SECRET_KEY = "my-super-secret-key"
+ALGORITHM = "HS256"
+ITERATIONS = 100000
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+LOG_LEVEL = "INFO"
+LOG_PATH = "api/log/api.log"
+```
