@@ -16,7 +16,7 @@ class UserRegister(BaseModel):
     )
     password: str = Field(
         ...,
-        min_length=6,
+        min_length=1,
         max_length=128,
         title="Password",
         description="User password (plain text before hashing)",
@@ -46,7 +46,7 @@ class UserLogin(BaseModel):
     )
     password: str = Field(
         ...,
-        min_length=6,
+        min_length=1,
         max_length=128,
         title="Password",
         description="User password",

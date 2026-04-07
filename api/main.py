@@ -8,8 +8,8 @@ from api.core.settings import get_settings
 from api.routers import (
     auth,
     health,
-    private_prediction,
-    private_user,
+    prediction,
+    user,
 )
 from api.utils.logger import get_logger, set_up_logging
 from api.utils.ml_model import MLModel
@@ -62,8 +62,8 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(health.router)
-    app.include_router(private_user.router)
-    app.include_router(private_prediction.router)
+    app.include_router(user.router)
+    app.include_router(prediction.router)
 
     return app
 

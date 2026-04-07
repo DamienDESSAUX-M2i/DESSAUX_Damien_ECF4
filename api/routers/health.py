@@ -12,7 +12,7 @@ logger = get_logger()
 router = APIRouter(prefix="/health", tags=["Health"])
 
 
-@router.get("/", response_model=APIResponse[MessageResponse])
+@router.get("", response_model=APIResponse[MessageResponse])
 async def health_check(
     ml_model: MLModel = Depends(get_model),
 ) -> APIResponse[MessageResponse]:

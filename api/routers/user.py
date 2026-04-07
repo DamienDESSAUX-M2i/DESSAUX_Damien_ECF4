@@ -38,7 +38,7 @@ def read_me(
     )
 
 
-@router.get("/", response_model=APIResponse[List[UserPublic]])
+@router.get("", response_model=APIResponse[List[UserPublic]])
 def list_users(
     current_user: User = Depends(require_roles(UserRole.ADMIN)),
     db: Session = Depends(get_db),

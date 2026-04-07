@@ -59,7 +59,7 @@ def validate_batch_titles(titles: list[str]) -> None:
 
 
 @router.post(
-    "/",
+    "",
     response_model=APIResponse[PredictionResponse],
     status_code=status.HTTP_201_CREATED,
 )
